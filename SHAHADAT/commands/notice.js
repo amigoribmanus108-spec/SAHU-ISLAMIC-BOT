@@ -4,17 +4,19 @@ const path = require("path");
 
 module.exports.config = {
   name: "notice",
-  version: "1.0.0",
+  version: "2.0.0",
   hasPermssion: 2,
-  credits: "SHAHADAT SAHU",
-  description: "Send notice to all groups (text + media supported)",
+  credits: "SOHAN AHMED",
+  description: "Send notice to all groups (Text + Media)",
   commandCategory: "Admin",
-  usages: "/notice <text> or reply + /notice",
+  usages: "/notice <text> or reply message",
   cooldowns: 5,
 };
 
-module.exports.run = async ({ api, event, args, Users }) => {
+module.exports.run = async function ({ api, event, args, Users }) {
+
   try {
+
     const allThreads = global.data.allThreadID || [];
     const senderName = await Users.getNameUser(event.senderID);
 
@@ -31,89 +33,123 @@ module.exports.run = async ({ api, event, args, Users }) => {
     let messageBody = "";
     let attachments = [];
 
-    // ====== IF REPLY MODE ======
+    // ===== REPLY MODE =====
     if (event.type === "message_reply") {
+
       const reply = event.messageReply;
 
       messageBody =
-        `📢 ADMIN NOTICE\n\n` +
-        `From: ${senderName}\n\n` +
-        `${reply.body || args.join(" ") || ""}`;
+`╔══════════════╗
+      📢 NOTICE
+╚══════════════╝
+
+👑 ADMIN: ${senderName}
+
+📝 MESSAGE:
+${reply.body || args.join(" ") || ""}
+
+━━━━━━━━━━━━━━━━━━
+🤖 BOT OWNER: SOHAN AHMED`;
 
       if (reply.attachments && reply.attachments.length > 0) {
+
         for (const file of reply.attachments) {
+
           try {
+
             const fileUrl = file.url;
             const ext = path.extname(fileUrl).split("?")[0];
+
             const filePath = path.join(
               cacheFolder,
               `${Date.now()}_${Math.random()}${ext}`
             );
 
             const response = await axios.get(fileUrl, {
-              responseType: "arraybuffer",
+              responseType: "arraybuffer"
             });
 
             await fs.writeFile(filePath, Buffer.from(response.data));
+
             attachments.push(fs.createReadStream(filePath));
+
           } catch (err) {
-            console.log("Attachment error:", err);
+            console.log("Attachment Error:", err);
           }
         }
       }
     }
 
-    // ====== TEXT ONLY MODE ======
+    // ===== TEXT MODE =====
     else if (args.length > 0) {
+
       messageBody =
-        `📢 ADMIN NOTICE\n\n` +
-        `From: ${senderName}\n\n` +
-        `${args.join(" ")}`;
+`╔══════════════╗
+      📢 NOTICE
+╚══════════════╝
+
+👑 ADMIN: ${senderName}
+
+📝 MESSAGE:
+${args.join(" ")}
+
+━━━━━━━━━━━━━━━━━━
+🤖 BOT OWNER: SOHAN AHMED`;
     }
 
     else {
       return api.sendMessage(
-        "ℹ️ Usage:\n• /notice <text>\n• Or reply any message + /notice",
+        "⚠️ Please enter a message or reply to a message.",
         event.threadID
       );
     }
 
-    // ====== SEND TO ALL THREADS ======
+    // ===== SEND NOTICE =====
     for (const threadID of allThreads) {
-      if (threadID == event.threadID) continue;
 
       try {
+
         await api.sendMessage(
           {
             body: messageBody,
-            attachment: attachments.length ? attachments : undefined,
+            attachment: attachments
           },
           threadID
         );
+
         success++;
-      } catch (err) {
+
+      } catch (e) {
         failed++;
       }
-
-      await new Promise(resolve => setTimeout(resolve, 700));
     }
 
-    // ====== CLEAN CACHE ======
-    if (attachments.length) {
-      attachments.forEach(stream => {
-        try {
-          fs.unlinkSync(stream.path);
-        } catch {}
+    // ===== DELETE CACHE =====
+    setTimeout(() => {
+
+      fs.readdirSync(cacheFolder).forEach(file => {
+        fs.unlinkSync(path.join(cacheFolder, file));
       });
-    }
+
+    }, 5000);
 
     return api.sendMessage(
-      `✅ Notice sent to ${success} groups\n❌ Failed: ${failed}`,
+`✅ NOTICE SENT SUCCESSFULLY
+
+📤 Sent To: ${success} Groups
+❌ Failed: ${failed}
+
+👑 OWNER: SOHAN AHMED`,
       event.threadID
     );
 
   } catch (error) {
+
     console.log(error);
-    return api.sendMessage("❌ Failed to send notice.", event.threadID);
+
+    return api.sendMessage(
+      "❌ Failed To Send Notice.",
+      event.threadID
+    );
   }
 };
