@@ -1,0 +1,129 @@
+module.exports.config = {
+  name: "antilink",
+  version: "2.0.0",
+  hasPermssion: 1,
+  credits: "Modified by ChatGPT",
+  description: "গ্রুপে লিংক দিলে warning দিবে এবং remove করবে",
+  commandCategory: "Admin",
+  usages: "antilink on/off",
+  cooldowns: 5
+};
+
+const fs = require("fs");
+const path = __dirname + "/cache/antilink.json";
+
+if (!fs.existsSync(path)) {
+  fs.writeFileSync(path, JSON.stringify({}));
+}
+
+module.exports.handleEvent = async function ({
+  api,
+  event
+}) {
+  try {
+    const { threadID, senderID, body, messageID } = event;
+
+    if (!body) return;
+
+    const data = JSON.parse(fs.readFileSync(path));
+    if (!data[threadID]) return;
+
+    // Link Regex
+    const linkRegex =
+      /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(facebook\.com[^\s]*)|(youtu\.be[^\s]*)|(youtube\.com[^\s]*)/gi;
+
+    if (!linkRegex.test(body)) return;
+
+    const threadInfo = await api.getThreadInfo(threadID);
+    const botID = api.getCurrentUserID();
+
+    // Bot admin check
+    if (!threadInfo.adminIDs.some(i => i.id == botID)) {
+      return api.sendMessage(
+        "⚠️ আমাকে আগে গ্রুপ অ্যাডমিন বানাও।",
+        threadID
+      );
+    }
+
+    // Ignore group admins
+    if (threadInfo.adminIDs.some(i => i.id == senderID)) return;
+
+    // Warning Message
+    api.sendMessage(
+      `⚠️ লিংক দেওয়া নিষিদ্ধ!\n\nআপনার মেসেজ 15 সেকেন্ডের মধ্যে ডিলিট না করলে আপনাকে গ্রুপ থেকে remove করা হবে.`,
+      threadID,
+      async (err, info) => {
+        if (err) return;
+
+        setTimeout(async () => {
+          try {
+            // আবার thread info নেওয়া
+            const updatedInfo = await api.getThreadInfo(threadID);
+
+            // User still exists?
+            const stillMember = updatedInfo.participantIDs.includes(senderID);
+
+            if (!stillMember) return;
+
+            // Kick user
+            await api.removeUserFromGroup(senderID, threadID);
+
+            api.sendMessage(
+              `🚫 একজন সদস্যকে লিংক শেয়ার করার কারণে remove করা হয়েছে.`,
+              threadID
+            );
+
+            // Delete warning msg
+            api.unsendMessage(info.messageID);
+
+          } catch (e) {
+            console.log(e);
+          }
+        }, 15000);
+      },
+      messageID
+    );
+
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+module.exports.run = async function ({
+  api,
+  event,
+  args
+}) {
+  const { threadID } = event;
+
+  const data = JSON.parse(fs.readFileSync(path));
+
+  if (!args[0]) {
+    return api.sendMessage(
+      "ব্যবহার:\nantilink on\nantilink off",
+      threadID
+    );
+  }
+
+  if (args[0] == "on") {
+    data[threadID] = true;
+
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
+
+    return api.sendMessage(
+      "✅ Antilink চালু হয়েছে",
+      threadID
+    );
+  }
+
+  if (args[0] == "off") {
+    delete data[threadID];
+
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
+
+    return api.sendMessage(
+      "❌ Antilink বন্ধ হয়েছে",
+      threadID
+    );
+  }
+};
