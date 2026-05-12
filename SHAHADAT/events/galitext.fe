@@ -1,0 +1,116 @@
+package org.example.antigali
+
+import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
+import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
+import net.mamoe.mirai.contact.MemberPermission
+import net.mamoe.mirai.event.GlobalEventChannel
+import net.mamoe.mirai.event.events.GroupMessageEvent
+import java.io.File
+
+object AntiGaliPlugin : KotlinPlugin(
+    JvmPluginDescription(
+        id = "org.example.antigali",
+        name = "AntiGali",
+        version = "2.0.1"
+    )
+) {
+
+    private lateinit var galiList: List<String>
+    private lateinit var galiFile: File
+
+    override fun onEnable() {
+
+        dataFolder.mkdirs()
+
+        galiFile = File(dataFolder, "galilist.txt")
+
+        // default gali file
+        if (!galiFile.exists()) {
+            galiFile.writeText(
+                """
+                bokachoda
+                madarchod
+                chutiya
+                fuck
+                bitch
+                """.trimIndent()
+            )
+
+            logger.info("Default galilist.txt তৈরি করা হয়েছে")
+        }
+
+        loadGaliList()
+
+        GlobalEventChannel.subscribeAlways<GroupMessageEvent> { event ->
+
+            val msg = event.message.contentToString().lowercase()
+            val group = event.group
+            val sender = event.sender
+
+            // বট admin না হলে কিছু করবে না
+            if (group.botPermission == MemberPermission.MEMBER) {
+                return@subscribeAlways
+            }
+
+            // group admin/mod হলে skip
+            if (sender.permission != MemberPermission.MEMBER) {
+                return@subscribeAlways
+            }
+
+            // gali detect
+            val found = galiList.any { gali ->
+                msg.contains(gali.lowercase())
+            }
+
+            if (found) {
+
+                try {
+
+                    // message recall
+                    event.message.recall()
+
+                    // kick user
+                    sender.kick("গালাগালি করার কারণে রিমুভ করা হয়েছে")
+
+                    // notify
+                    group.sendMessage(
+                        """
+╔══════════════╗
+⚠️ Anti Gali System
+╚══════════════╝
+
+👤 User: ${sender.nameCardOrNick}
+
+🚫 কারণ:
+গ্রুপে গালাগালি
+
+✅ Action:
+Message Delete + Kick
+                        """.trimIndent()
+                    )
+
+                    logger.info("${sender.id} kicked for bad words")
+
+                } catch (e: Exception) {
+
+                    logger.error("Error: ${e.message}")
+                }
+            }
+        }
+
+        logger.info("AntiGali Plugin চালু হয়েছে")
+    }
+
+    private fun loadGaliList() {
+
+        galiList = galiFile.readLines()
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
+
+        logger.info("${galiList.size} টি গালি লোড হয়েছে")
+    }
+
+    override fun onDisable() {
+        logger.info("AntiGali Plugin বন্ধ হয়েছে")
+    }
+}
