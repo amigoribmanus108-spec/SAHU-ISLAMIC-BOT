@@ -1,0 +1,76 @@
+package org.example.antigali
+
+import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
+import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
+import net.mamoe.mirai.event.GlobalEventChannel
+import net.mamoe.mirai.event.events.GroupMessageEvent
+import net.mamoe.mirai.message.data.MessageSource
+import net.mamoe.mirai.contact.isOperator
+import net.mamoe.mirai.contact.isAdministrator
+import java.io.File
+
+object AntiGaliPlugin : KotlinPlugin(
+    JvmPluginDescription(
+        id = "org.example.antigali",
+        name = "AntiGali",
+        version = "2.0.0"
+    )
+) {
+    private lateinit var galiList: List<String>
+    private val galiFile = File(dataFolder, "galilist.txt")
+
+    override fun onEnable() {
+        // data ফোল্ডার না থাকলে বানাও
+        dataFolder.mkdirs()
+        
+        // galilist.txt ফাইল না থাকলে বানিয়ে দাও
+        if (!galiFile.exists()) {
+            galiFile.writeText("bokachoda\nmadarchod\nchutiya\nfuck\nbitch\n")
+            logger.info { "galilist.txt ফাইল বানানো হলো: ${galiFile.absolutePath}" }
+        }
+        
+        loadGaliList()
+
+        GlobalEventChannel.subscribeAlways<GroupMessageEvent> { event ->
+            val message = event.message.contentToString().lowercase()
+            val group = event.group
+            val sender = event.sender
+
+            // বট এডমিন না হলে বাদ
+            if (!group.botAsMember.permission.isAdministrator() && !group.botAsMember.permission.isOperator()) {
+                return@subscribeAlways
+            }
+
+            // সেন্ডার এডমিন হলে বাদ
+            if (sender.permission.isAdministrator() || sender.permission.isOperator()) {
+                return@subscribeAlways
+            }
+
+            // গালি চেক করো
+            val galiFound = galiList.any { gali -> message.contains(gali) }
+
+            if (galiFound) {
+                try {
+                    MessageSource.recall(event.message)
+                    sender.kick("গ্রুপে গালাগালি করার জন্য রিমুভ করা হলো")
+                    group.sendMessage("নিয়ম ভাঙায় @${sender.nick} কে রিমুভ করা হলো।")
+                } catch (e: Exception) {
+                    logger.error("কিক করতে সমস্যা: ${e.message}")
+                }
+            }
+        }
+        logger.info { "AntiGali Plugin চালু। গালি লোড হয়েছে: ${galiList.size} টি" }
+    }
+    
+    private fun loadGaliList() {
+        galiList = galiFile.readLines()
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+        logger.info { "galilist.txt থেকে ${galiList.size} টি গালি লোড করা হলো" }
+    }
+    
+    // বটে /reloadgali কমান্ড দিলে লিস্ট রিফ্রেশ হবে
+    override fun onDisable() {
+        super.onDisable()
+    }
+}
