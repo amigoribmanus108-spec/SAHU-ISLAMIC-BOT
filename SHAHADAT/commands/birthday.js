@@ -2,7 +2,7 @@ module.exports.config = {
  name: "birthday",
  version: "1.0.0",
  hasPermssion: 1,
- credits: "SHAHADAT SAHU",
+ credits: "SOHAN AHMED",
  description: "Islamic birthday wish system",
  commandCategory: "group",
  usages: "birthday @tag or reply",
