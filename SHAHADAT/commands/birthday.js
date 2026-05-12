@@ -1,55 +1,103 @@
 module.exports.config = {
- name: "birthday",
- version: "1.0.0",
- hasPermssion: 1,
- credits: "SHAHADAT SAHU",
- description: "Islamic birthday wish system",
- commandCategory: "group",
- usages: "birthday @tag or reply",
- cooldowns: 0
+    name: "birthday",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "MiraBot",
+    description: "জন্মদিন কবে, কি বারে, কতদিন বাকি দেখো + মেনশন করে",
+    commandCategory: "utility",
+    usages: "[DD/MM] বা [DD/MM/YYYY]",
+    cooldowns: 3,
+    dependencies: {
+        "moment-timezone": ""
+    }
 };
 
-module.exports.run = async function ({ api, event, Users }) {
- try {
- let targetID;
- let name;
+module.exports.run = async function({ api, event, args, Users }) {
+    const { threadID, senderID, messageID } = event;
+    const moment = require("moment-timezone");
 
- if (event.messageReply) {
- targetID = event.messageReply.senderID;
- name = await Users.getNameUser(targetID);
- }
- else if (Object.keys(event.mentions).length > 0) {
- targetID = Object.keys(event.mentions)[0];
- name = event.mentions[targetID];
- }
- else {
- return api.sendMessage("Please tag or reply to someone 🤍", event.threadID, event.messageID);
- }
+    if (args.length == 0) {
+        return api.sendMessage(
+            "ডেট দাও।\nব্যবহার: /birthday 15/08\nবা: /birthday 15/08/2000",
+            threadID, messageID
+        );
+    }
 
- const tagArray = [{ id: targetID, tag: name }];
- const send = msg => api.sendMessage({ body: msg, mentions: tagArray }, event.threadID);
+    const input = args[0];
+    const regex = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/;
 
- send(`🎉 শুভ জন্মদিন 🎉\n\n${name}, আল্লাহ তোমার জীবনে রহমত, বরকত ও হেদায়েত দান করুন 🤲`);
+    if (!regex.test(input)) {
+        return api.sendMessage("❌ ডেট ভুল। সঠিক ফরম্যাট: 15/08 বা 15/08/2000", threadID, messageID);
+    }
 
- const messages = [
- { delay: 3000, msg: `${name} 🤍\nবয়স বাড়ার সাথে সাথে তোমার তাকওয়া ও ঈমান যেন আরও মজবুত হয়, সেই দোয়া করি।` },
- { delay: 6000, msg: `🌸 প্রিয় ${name}\nনতুন বছরের প্রতিটি কদম হোক সিরাতুল মুস্তাকিমের দিকে, আল্লাহর সন্তুষ্টির পথে।` },
- { delay: 10000, msg: `🕌 ${name}\nপবিত্র কোরআনের আলোয় আলোকিত হোক তোমার আগামী দিনগুলো।` },
- { delay: 14000, msg: `🤲 ${name}\nআল্লাহ তোমার অতীতের সব গুনাহ মাফ করে দিন এবং দুনিয়া ও আখিরাতে কল্যাণ দান করুন।` },
- { delay: 18000, msg: `✨ ${name}\nরাসূল (সা.)-এর সুন্নাহ অনুযায়ী জীবন গড়ার তৌফিক দিক আল্লাহ।` },
- { delay: 22000, msg: `🌙 ${name}\nতোমার জীবনে সুখ, শান্তি আর ইবাদতের মাঝ দিয়ে কাটুক বাকিটা সময়।` },
- { delay: 26000, msg: `💖 ${name}\nআল্লাহ তোমাকে দুনিয়াতে সম্মান এবং আখিরাতে জান্নাতুল ফিরদাউস নসিব করুন।` },
- { delay: 30000, msg: `📖 ${name}\nবিপদ-আপদ থেকে আল্লাহ তোমাকে সর্বদা হেফাজতে রাখুন।` },
- { delay: 34000, msg: `🕋 ${name}\nতোমার জীবনের প্রতিটি মুহূর্ত হোক নেক কাজ ও হালাল রিজিক দিয়ে পূর্ণ।` },
- { delay: 38000, msg: `🤍 ${name}\nজন্মদিনে একটাই দোয়া—আল্লাহ তোমার সব নেক মাকসাদ ও আশা কবুল করুন।` },
- { delay: 42000, msg: `🌺 ${name}\nসর্বদা দোয়ায় রাখলাম। আল্লাহ আমাদের সবাইকে দ্বীনের ওপর অটল রাখুন। আমিন ইয়া রাব্বাল আলামিন 🤲` }
- ];
+    const [, day, month, year] = input.match(regex);
+    const currentYear = moment.tz("Asia/Dhaka").year();
+    const birthYear = year? parseInt(year) : null;
 
- messages.forEach(({ delay, msg }) => {
- setTimeout(() => send(msg), delay);
- });
+    // ডেট ভ্যালিড কিনা চেক
+    const checkDate = moment(`${currentYear}-${month}-${day}`, "YYYY-M-D", true);
+    if (!checkDate.isValid()) {
+        return api.sendMessage("❌ এই তারিখটা ভুল। যেমন: 31/02 বললে হবে না", threadID, messageID);
+    }
 
- } catch {
- api.sendMessage("Something went wrong!", event.threadID);
- }
+    // এই বছরের জন্মদিন
+    let nextBirthday = moment.tz(`${currentYear}-${month}-${day}`, "YYYY-M-D", "Asia/Dhaka");
+
+    // যদি এই বছরেরটা চলে যায় তাহলে সামনের বছর
+    if (nextBirthday.isBefore(moment.tz("Asia/Dhaka"), 'day')) {
+        nextBirthday = nextBirthday.add(1, 'year');
+    }
+
+    const dayName = nextBirthday.format('dddd');
+    const daysLeft = nextBirthday.diff(moment.tz("Asia/Dhaka"), 'days');
+
+    // বাংলা বার + মাস
+    const banglaDays = {
+        'Sunday': 'রবিবার', 'Monday': 'সোমবার', 'Tuesday': 'মঙ্গলবার',
+        'Wednesday': 'বুধবার', 'Thursday': 'বৃহস্পতিবার',
+        'Friday': 'শুক্রবার', 'Saturday': 'শনিবার'
+    };
+
+    const banglaMonths = {
+        'January': 'জানুয়ারি', 'February': 'ফেব্রুয়ারি', 'March': 'মার্চ',
+        'April': 'এপ্রিল', 'May': 'মে', 'June': 'জুন', 'July': 'জুলাই',
+        'August': 'আগস্ট', 'September': 'সেপ্টেম্বর', 'October': 'অক্টোবর',
+        'November': 'নভেম্বর', 'December': 'ডিসেম্বর'
+    };
+
+    let banglaDate = nextBirthday.format('DD MMMM YYYY');
+    for (const [eng, ban] of Object.entries(banglaMonths)) {
+        banglaDate = banglaDate.replace(eng, ban);
+    }
+
+    // ইউজারের নাম
+    let name;
+    try {
+        name = await Users.getNameUser(senderID);
+    } catch {
+        name = "বন্ধু";
+    }
+
+    // মেসেজ বানানো
+    let msg = `🎂 @${name} এর জন্মদিনের হিসাব:\n\n`;
+    msg += `📅 তারিখ: ${banglaDate}\n`;
+    msg += `📆 বার: ${banglaDays[dayName]}\n`;
+
+    if (daysLeft === 0) {
+        msg += `🎉 আজকেই জন্মদিন! Happy Birthday 🎂🎈`;
+    } else if (daysLeft === 1) {
+        msg += `⏰ আর মাত্র ১ দিন বাকি!`;
+    } else {
+        msg += `⏰ আর ${daysLeft} দিন বাকি`;
+    }
+
+    if (birthYear) {
+        const age = nextBirthday.year() - birthYear;
+        msg += `\n🎈 ${age} বছরে পা দিবা`;
+    }
+
+    return api.sendMessage({
+        body: msg,
+        mentions: [{ tag: name, id: senderID }]
+    }, threadID, messageID);
 };
