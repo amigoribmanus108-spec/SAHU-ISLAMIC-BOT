@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "joinNoti",
   eventType: ["log:subscribe"],
-  version: "1.0.1",
-  credits: "Islamick Cyber Chat",
-  description: "Send join notification with random media",
+  version: "2.0.0",
+  credits: "SOHAN AHMED",
+  description: "Premium Stylish Join Notification",
   dependencies: {
     "fs-extra": "",
     "path": "",
@@ -15,117 +15,145 @@ module.exports.onLoad = function () {
   const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
   const { join } = global.nodemodule["path"];
 
-  const dir = join(__dirname, "SAHU");
+  const dir = join(__dirname, "SOHAN");
+
   if (!existsSync(dir)) mkdirSync(dir);
 
   const gifFolder = join(dir, "joinGif");
-  if (!existsSync(gifFolder)) mkdirSync(gifFolder);
 
-  const videoFile = join(dir, "sahu.mp4");
-  if (!existsSync(videoFile)) mkdirSync(dir);
+  if (!existsSync(gifFolder)) mkdirSync(gifFolder);
 };
 
 module.exports.run = async function ({ api, event }) {
+
   const { join } = global.nodemodule["path"];
-  const { createReadStream, existsSync, readdirSync } = global.nodemodule["fs-extra"];
-  const fs = require("fs");
+  const {
+    createReadStream,
+    existsSync,
+    readdirSync
+  } = global.nodemodule["fs-extra"];
+
   const threadID = event.threadID;
 
   const added = event.logMessageData.addedParticipants || [];
 
-  const botAdded = added.find(i => i.userFbId == api.getCurrentUserID());
+  const botAdded = added.find(
+    i => i.userFbId == api.getCurrentUserID()
+  );
 
+  // BOT ADDED
   if (botAdded) {
+
     api.changeNickname(
-      `[ ${global.config.PREFIX} ] • ${global.config.BOTNAME || ""}`,
+      `[ ${global.config.PREFIX} ] • ${global.config.BOTNAME || "SOHAN BOT"}`,
       threadID,
       api.getCurrentUserID()
     );
 
-    return api.sendMessage(
-      {
-        body: `╭•┄┅═══❁🌺❁═══┅┄•╮
- আসসালামু আলাইকুম-!!🖤💫
-╰•┄┅═══❁🌺❁═══┅┄•╯
+    return api.sendMessage({
+      body:
+`╔════❖ ASSALAMUALAIKUM ❖════╗
 
-________________________
-𝐓𝐡𝐚𝐧𝐤 𝐲𝐨𝐮 𝐬𝐨 𝐦𝐮𝐜𝐡 𝐟𝐨𝐫 𝐚𝐝𝐝𝐢𝐧𝐠 𝐦𝐞 🖤🤗
+🤖 আমাকে গ্রুপে এড করার জন্য ধন্যবাদ
 
-𝐈 𝐰𝐢𝐥𝐥 𝐬𝐞𝐫𝐯𝐞 𝐲𝐨𝐮 𝐢𝐧𝐬𝐡𝐚𝐚𝐥𝐥𝐚𝐡 🌺❤️
-________________________
+✨ আমি এখন থেকে আপনাদের সার্ভিস দিবো ইনশাআল্লাহ
 
-Commands:
-${global.config.PREFIX}help
-${global.config.PREFIX}info
-${global.config.PREFIX}admin
+📌 COMMAND LIST
 
-✦•─•❁🌺 ${global.config.BOTNAME} 🌺❁•─•✦`,
-        attachment: fs.createReadStream(__dirname + "/SAHU/sahu.mp4")
-      },
-      threadID
-    );
+➤ ${global.config.PREFIX}help
+➤ ${global.config.PREFIX}admin
+➤ ${global.config.PREFIX}info
+
+━━━━━━━━━━━━━━━━━━
+👑 OWNER : SOHAN AHMED
+⚡ PREMIUM BOT SYSTEM
+╚════════════════╝`
+    }, threadID);
   }
 
   try {
-    let { threadName, participantIDs } = await api.getThreadInfo(threadID);
 
-    const threadData = global.data.threadData.get(parseInt(threadID)) || {};
-    const gifFolder = join(__dirname, "SAHU", "joinGif");
+    let {
+      threadName,
+      participantIDs
+    } = await api.getThreadInfo(threadID);
 
-    let mentions = [],
-      nameArray = [],
-      memLength = [],
-      i = 0;
+    const threadData =
+      global.data.threadData.get(parseInt(threadID)) || {};
 
-    for (let p of added) {
-      const userName = p.fullName;
+    const gifFolder = join(__dirname, "SOHAN", "joinGif");
+
+    let mentions = [];
+    let nameArray = [];
+    let memLength = [];
+    let i = 0;
+
+    for (let user of added) {
+
+      const userName = user.fullName;
+
       nameArray.push(userName);
-      mentions.push({ tag: userName, id: p.userFbId });
+
+      mentions.push({
+        tag: userName,
+        id: user.userFbId
+      });
+
       memLength.push(participantIDs.length - i++);
     }
 
     memLength.sort((a, b) => a - b);
 
     let msg =
-      typeof threadData.customJoin == "undefined"
-        ? `╭•┄┅═══❁🌺❁═══┅┄•╮
-   আসসালামু আলাইকুম-!!🖤
-╰•┄┅═══❁🌺❁═══┅┄•╯
+typeof threadData.customJoin == "undefined"
+? `╔════❖ WELCOME TO GROUP ❖════╗
 
-✨🆆🅴🅻🅻 🅲🅾🅼🅴✨
+🌸 আসসালামু আলাইকুম 🌸
 
-❥ 𝐍𝐄𝐖 𝐌𝐄𝐌𝐁𝐄𝐑  
-[ {name} ]
+👤 নতুন মেম্বার:
+➤ {name}
 
-༆-✿ আপনাকে আমাদের  
-{threadName}
+🏡 গ্রুপ:
+➤ {threadName}
 
-✨🌺 এর পক্ষ থেকে স্বাগতম 🌺✨
+🎉 আপনি এই গ্রুপের
+➤ {soThanhVien} নং সদস্য
 
-❤️🫰 ভালোবাসা অবিরাম 🫰❤️
+💖 আশা করি সবাইকে সাথে নিয়ে
+ভালো সময় কাটাবেন
 
-༆-✿ আপনি এই গ্রুপের {soThanhVien} নং মেম্বার
-
-╭•┄┅═══❁🌺❁═══┅┄•╮
-   ${global.config.BOTNAME}
-╰•┄┅═══❁🌺❁═══┅┄•╯`
-        : threadData.customJoin;
+━━━━━━━━━━━━━━━━━━
+👑 OWNER : SOHAN AHMED
+⚡ PREMIUM JOIN SYSTEM
+╚════════════════╝`
+: threadData.customJoin;
 
     msg = msg
       .replace(/\{name}/g, nameArray.join(", "))
       .replace(/\{soThanhVien}/g, memLength.join(", "))
       .replace(/\{threadName}/g, threadName);
 
-    const files = existsSync(gifFolder) ? readdirSync(gifFolder) : [];
-    let formPush = { body: msg, mentions };
+    const files = existsSync(gifFolder)
+      ? readdirSync(gifFolder)
+      : [];
+
+    let formPush = {
+      body: msg,
+      mentions
+    };
 
     if (files.length > 0) {
-      const randomFile = files[Math.floor(Math.random() * files.length)];
+
+      const randomFile =
+        files[Math.floor(Math.random() * files.length)];
+
       const filePath = join(gifFolder, randomFile);
+
       formPush.attachment = createReadStream(filePath);
     }
 
     return api.sendMessage(formPush, threadID);
+
   } catch (e) {
     console.log(e);
   }
